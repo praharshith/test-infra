@@ -4,6 +4,7 @@ import {
   DEFAULT_DTYPE_NAME,
   DEFAULT_MODE_NAME,
 } from "lib/benchmark/llms/common";
+import { SPYRE_DATE_RANGE_ARCHES_SQL } from "lib/benchmark/spyreDateRange";
 import ld from "lodash";
 import {
   BenchmarkMetadataItem,
@@ -37,8 +38,12 @@ export class BenchmarkMetadataQuery
         "arch",
       ],
       prewhere: [
-        "timestamp >= toUnixTimestamp({startTime: DateTime64(3)}) * 1000",
-        "timestamp < toUnixTimestamp({stopTime: DateTime64(3)}) * 1000",
+        `multiIf(
+          arch IN (${SPYRE_DATE_RANGE_ARCHES_SQL}),
+          inserted_at >= {startTime: DateTime64(3)} AND inserted_at < {stopTime: DateTime64(3)},
+          timestamp >= toUnixTimestamp({startTime: DateTime64(3)}) * 1000
+            AND timestamp < toUnixTimestamp({stopTime: DateTime64(3)}) * 1000
+        )`,
       ],
       where: [
         "repo = {repo: String}",
@@ -309,8 +314,8 @@ export class VllmBenchmarkMetadataFetcher
       // Remove the first option (default option with empty value)
       deviceItem.options = deviceItem.options.filter((opt) => opt.value !== "");
       // Set initial value to NVIDIA_B200 if it exists, otherwise first available option
-      const nvidiaB200 = deviceItem.options.find(
-        (opt) => opt.value.startsWith("NVIDIA_B200")
+      const nvidiaB200 = deviceItem.options.find((opt) =>
+        opt.value.startsWith("NVIDIA_B200")
       );
       if (nvidiaB200) {
         deviceItem.initialValue = nvidiaB200.value;

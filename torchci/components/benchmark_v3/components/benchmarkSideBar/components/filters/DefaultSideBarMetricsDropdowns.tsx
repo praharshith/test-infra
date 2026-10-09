@@ -33,10 +33,12 @@ export default function DefaultMetricsDropdowns() {
 
   const subrenders = configHandler.raw.dataRender.subSectionRenders;
 
-  let dropdownConfig = undefined;
-  if (subrenders && subrenders[renderGroupId]) {
-    dropdownConfig = subrenders[renderGroupId]?.filterConstraint;
-  }
+  const pageConstraint = configHandler.raw.dataRender.filterConstraint;
+  const subConstraint = subrenders?.[renderGroupId]?.filterConstraint;
+  const dropdownConfig =
+    pageConstraint || subConstraint
+      ? { ...pageConstraint, ...subConstraint }
+      : undefined;
 
   // convert to the query params
   const queryParams = ready

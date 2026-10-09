@@ -1,4 +1,8 @@
 import { deepClone } from "@mui/x-data-grid/internals";
+import {
+  SPYRE_DATE_RANGE_ARCHES,
+  SPYRE_DATE_RANGE_ARCHES_SQL,
+} from "lib/benchmark/spyreDateRange";
 import { toBenchmarkTimeSeriesReponseFormat } from "../../common/utils";
 import { BenchmarkDataFetcher } from "../type";
 import { ExecutableQueryBase, QueryBuilder, SelectItem } from "./queryBuilder";
@@ -104,7 +108,10 @@ export class BenchmarkDataQuery extends ExecutableQueryBase {
         where_exists: true,
         // default select statement for customized query
         select: [
-          ["if(notEmpty(o.extra['mean_ttft_ms']), toFloat64OrZero(o.extra['mean_ttft_ms']), if(notEmpty(o.extra['throughput_req_s']), toFloat64OrZero(o.extra['throughput_req_s']), if(notEmpty(o.extra['mean_latency_ms']), toFloat64OrZero(o.extra['mean_latency_ms']), if(notEmpty(o.extra['throughput_tok_s']), toFloat64OrZero(o.extra['throughput_tok_s']), if(notEmpty(o.extra['value']), toFloat64OrZero(o.extra['value']), 0)))))", "value"],
+          [
+            "if(notEmpty(o.extra['mean_ttft_ms']), toFloat64OrZero(o.extra['mean_ttft_ms']), if(notEmpty(o.extra['throughput_req_s']), toFloat64OrZero(o.extra['throughput_req_s']), if(notEmpty(o.extra['mean_latency_ms']), toFloat64OrZero(o.extra['mean_latency_ms']), if(notEmpty(o.extra['throughput_tok_s']), toFloat64OrZero(o.extra['throughput_tok_s']), if(notEmpty(o.extra['value']), toFloat64OrZero(o.extra['value']), 0)))))",
+            "value",
+          ],
           ["map()", this._EXTRA_KEY_FIELD_NAME],
           metadata_info_select,
         ],
@@ -442,10 +449,7 @@ export class PytorchOperatorMicroBenchmarkDataFetcher
     // add extra info to the query
     this._data_query.addExtraInfos(
       new Map([
-        [
-          "operator_name",
-          `''`,
-        ],
+        ["operator_name", `''`],
         [
           "use_compile",
           `IF(
@@ -500,17 +504,9 @@ export class PytorchHelionDataFetcher
   constructor() {
     super();
     this._data_query = new BenchmarkDataQuery();
-    this._data_query.replaceValueSelectStatement(
-      "0"
-    );
-    this._data_query.addSelectStatement(
-      "0",
-      "avg_value"
-    );
-    this._data_query.addSelectStatement(
-      "[]",
-      "raw_value_list"
-    );
+    this._data_query.replaceValueSelectStatement("0");
+    this._data_query.addSelectStatement("0", "avg_value");
+    this._data_query.addSelectStatement("[]", "raw_value_list");
   }
 
   applyFormat(
@@ -660,14 +656,8 @@ export class VllmBenchmarkDataFetcher
         ],
         ["random_input_len", `''`],
         ["random_output_len", `''`],
-        [
-          "input_len",
-          `tupleElement(o.benchmark, 'extra_info')['input_len']`,
-        ],
-        [
-          "output_len",
-          `tupleElement(o.benchmark, 'extra_info')['output_len']`,
-        ],
+        ["input_len", `tupleElement(o.benchmark, 'extra_info')['input_len']`],
+        ["output_len", `tupleElement(o.benchmark, 'extra_info')['output_len']`],
         [
           "hardware_type",
           `tupleElement(o.benchmark, 'extra_info')['hardware_type']`,
@@ -775,6 +765,13 @@ export class SpyreBenchmarkDataFetcher
         ...Array.from(this._extra_keys).map((key) => `extra_key.${key}`),
       ];
     }
+    // these archs share one workflow_id, so key each point by date instead
+    const dateKeyed =
+      data.length > 0 &&
+      data.every((r: any) => SPYRE_DATE_RANGE_ARCHES.includes(r.arch));
+    if (dateKeyed) {
+      config.time_series.sub_group_key = ["granularity_bucket"];
+    }
     return toBenchmarkTimeSeriesReponseFormat(data, config, formats);
   }
 
@@ -823,9 +820,10 @@ export class SpyreBenchmarkDataFetcher
             '' AS dtype,
             JSONExtractString(o.extra, 'device') AS device,
             JSONExtractString(o.extra, 'arch') AS arch,
-            DATE_TRUNC(
-                {granularity: String},
-                fromUnixTimestamp(intDiv(o.timestamp, 1000))
+            multiIf(
+                JSONExtractString(o.extra, 'arch') IN (${SPYRE_DATE_RANGE_ARCHES_SQL}),
+                DATE_TRUNC({granularity: String}, o.inserted_at),
+                DATE_TRUNC({granularity: String}, fromUnixTimestamp(intDiv(o.timestamp, 1000)))
             ) AS granularity_bucket,
             map(
                 'use_compile', 'true',
@@ -839,8 +837,13 @@ export class SpyreBenchmarkDataFetcher
             ) AS metadata_info
         FROM spyre.results_v3 o
         PREWHERE
-            o.timestamp >= toUnixTimestamp(parseDateTime64BestEffort({startTime: String}, 3)) * 1000
-            AND o.timestamp < toUnixTimestamp(parseDateTime64BestEffort({stopTime: String}, 3)) * 1000
+            multiIf(
+                JSONExtractString(o.extra, 'arch') IN (${SPYRE_DATE_RANGE_ARCHES_SQL}),
+                o.inserted_at >= parseDateTime64BestEffort({startTime: String}, 3)
+                    AND o.inserted_at < parseDateTime64BestEffort({stopTime: String}, 3),
+                o.timestamp >= toUnixTimestamp(parseDateTime64BestEffort({startTime: String}, 3)) * 1000
+                    AND o.timestamp < toUnixTimestamp(parseDateTime64BestEffort({stopTime: String}, 3)) * 1000
+            )
         WHERE
             o.repo = {repo: String}
             AND (

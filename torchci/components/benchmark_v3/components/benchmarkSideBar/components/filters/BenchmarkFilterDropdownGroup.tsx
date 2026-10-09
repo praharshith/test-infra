@@ -47,6 +47,9 @@ export default function BenchmarkDropdownGroup({
           let disable = false;
           if (config && config[type]) {
             const c = config[type];
+            if (c.hidden) {
+              return null;
+            }
             disable = c.disabled ?? false;
             olist = olist.filter((o) => {
               if (typeof o === "string") {

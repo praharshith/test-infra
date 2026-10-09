@@ -25,6 +25,12 @@ export function DefaultAutoRenderContent() {
       ctx.dataRender.subSectionRenders[renderGroupId]?.renders ?? [];
   }
 
+  const matches = (c?: { filter: string; in: string[] }) =>
+    !!c && c.in.includes(ctx.committedFilters?.[c.filter] ?? "");
+  autoUIConfigs = autoUIConfigs?.filter(
+    (c) => (!c.showWhen || matches(c.showWhen)) && !matches(c.hideWhen)
+  );
+
   if (autoUIConfigs?.length === 0) {
     return (
       <Alert severity="error">

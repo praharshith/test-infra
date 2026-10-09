@@ -53,6 +53,19 @@ export const authOptions = {
     secret: process.env.JWT_SECRET,
   },
 
+  // SameSite=None so the session cookie survives the cross-origin spyre-dashboard iframe
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: true,
+      },
+    },
+  },
+
   theme: {
     colorScheme: "light",
     logo: "/favicon.ico",

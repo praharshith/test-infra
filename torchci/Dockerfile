@@ -20,7 +20,9 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# proxy strips the stray ANSI escape Next 15.5.x emits into HTML responses
+COPY --chown=nextjs:nodejs strip-ansi-proxy.js ./strip-ansi-proxy.js
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
-CMD ["node", "server.js"]
+CMD ["node", "strip-ansi-proxy.js"]

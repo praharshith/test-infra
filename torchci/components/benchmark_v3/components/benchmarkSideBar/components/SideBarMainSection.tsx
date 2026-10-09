@@ -12,6 +12,7 @@ import { UMDateButtonPicker } from "components/uiModules/UMDateRangePicker";
 import { UMDenseButtonLight } from "components/uiModules/UMDenseComponents";
 import dayjs from "dayjs";
 import { useBenchmarkCommitsData } from "lib/benchmark/api_helper/fe/hooks";
+import { isSpyreDateRangeView } from "lib/benchmark/spyreDateRange";
 import { useDashboardSelector } from "lib/benchmark/store/benchmark_dashboard_provider";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -248,6 +249,11 @@ export function SideBarMainSection() {
         />
       </Stack>
       <UMDateButtonPicker
+        label={
+          isSpyreDateRangeView(benchmarkId, stagedFilters?.arch)
+            ? "Filter by Date:"
+            : "Time Range:"
+        }
         setTimeRange={(start: dayjs.Dayjs, end: dayjs.Dayjs) =>
           setStagedTime({ start, end })
         }
