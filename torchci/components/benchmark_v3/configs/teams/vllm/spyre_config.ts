@@ -1,4 +1,7 @@
-import { SPYRE_DATE_RANGE_ARCHES } from "lib/benchmark/spyreDateRange";
+import {
+  SPYRE_DATE_RANGE_ARCHES,
+  SPYRE_E2E_BENCHMARK_ID,
+} from "lib/benchmark/spyreDateRange";
 import { BenchmarkUIConfig } from "../../config_book_types";
 import { BenchmarkComparisonPolicyConfig } from "../../helpers/RegressionPolicy";
 import {
@@ -6,7 +9,7 @@ import {
   DEFAULT_DASHBOARD_BENCHMARK_INITIAL,
 } from "../defaults/default_dashboard_config";
 
-export const SPYRE_E2E_BENCHMARK_ID = "spyre_e2e_benchmark";
+export { SPYRE_E2E_BENCHMARK_ID };
 
 const DATE_RANGE_ONLY_ARCH = { filter: "arch", in: SPYRE_DATE_RANGE_ARCHES };
 
@@ -149,7 +152,10 @@ export const SpyreE2eBenchmarkDashboardConfig: BenchmarkUIConfig = {
             type: "AutoBenchmarkRawDataTable",
             title: "Raw Data Table",
             config: {
-              extraMetadata: [BRANCH_METADATA_COLUMN, ...METADATA_COLUMNS],
+              extraMetadata: [
+                BRANCH_METADATA_COLUMN,
+                ...METADATA_COLUMNS,
+              ],
             },
           },
         ],

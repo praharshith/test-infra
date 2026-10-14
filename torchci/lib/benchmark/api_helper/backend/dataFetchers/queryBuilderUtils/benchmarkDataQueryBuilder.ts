@@ -108,10 +108,7 @@ export class BenchmarkDataQuery extends ExecutableQueryBase {
         where_exists: true,
         // default select statement for customized query
         select: [
-          [
-            "if(notEmpty(o.extra['mean_ttft_ms']), toFloat64OrZero(o.extra['mean_ttft_ms']), if(notEmpty(o.extra['throughput_req_s']), toFloat64OrZero(o.extra['throughput_req_s']), if(notEmpty(o.extra['mean_latency_ms']), toFloat64OrZero(o.extra['mean_latency_ms']), if(notEmpty(o.extra['throughput_tok_s']), toFloat64OrZero(o.extra['throughput_tok_s']), if(notEmpty(o.extra['value']), toFloat64OrZero(o.extra['value']), 0)))))",
-            "value",
-          ],
+          ["if(notEmpty(o.extra['mean_ttft_ms']), toFloat64OrZero(o.extra['mean_ttft_ms']), if(notEmpty(o.extra['throughput_req_s']), toFloat64OrZero(o.extra['throughput_req_s']), if(notEmpty(o.extra['mean_latency_ms']), toFloat64OrZero(o.extra['mean_latency_ms']), if(notEmpty(o.extra['throughput_tok_s']), toFloat64OrZero(o.extra['throughput_tok_s']), if(notEmpty(o.extra['value']), toFloat64OrZero(o.extra['value']), 0)))))", "value"],
           ["map()", this._EXTRA_KEY_FIELD_NAME],
           metadata_info_select,
         ],
@@ -449,7 +446,10 @@ export class PytorchOperatorMicroBenchmarkDataFetcher
     // add extra info to the query
     this._data_query.addExtraInfos(
       new Map([
-        ["operator_name", `''`],
+        [
+          "operator_name",
+          `''`,
+        ],
         [
           "use_compile",
           `IF(
@@ -504,9 +504,17 @@ export class PytorchHelionDataFetcher
   constructor() {
     super();
     this._data_query = new BenchmarkDataQuery();
-    this._data_query.replaceValueSelectStatement("0");
-    this._data_query.addSelectStatement("0", "avg_value");
-    this._data_query.addSelectStatement("[]", "raw_value_list");
+    this._data_query.replaceValueSelectStatement(
+      "0"
+    );
+    this._data_query.addSelectStatement(
+      "0",
+      "avg_value"
+    );
+    this._data_query.addSelectStatement(
+      "[]",
+      "raw_value_list"
+    );
   }
 
   applyFormat(
@@ -656,8 +664,14 @@ export class VllmBenchmarkDataFetcher
         ],
         ["random_input_len", `''`],
         ["random_output_len", `''`],
-        ["input_len", `tupleElement(o.benchmark, 'extra_info')['input_len']`],
-        ["output_len", `tupleElement(o.benchmark, 'extra_info')['output_len']`],
+        [
+          "input_len",
+          `tupleElement(o.benchmark, 'extra_info')['input_len']`,
+        ],
+        [
+          "output_len",
+          `tupleElement(o.benchmark, 'extra_info')['output_len']`,
+        ],
         [
           "hardware_type",
           `tupleElement(o.benchmark, 'extra_info')['hardware_type']`,

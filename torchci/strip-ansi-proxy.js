@@ -13,11 +13,15 @@ const child = spawn("node", ["server.js"], {
   stdio: "inherit",
 });
 child.on("exit", (code) => process.exit(code ?? 1));
+for (const signal of ["SIGTERM", "SIGINT"]) {
+  process.on(signal, () => child.kill(signal));
+}
+
+// the stray escapes only appear at the very start and end of the document
+const STRAY_ANSI = /^(?:\x1b\[[0-9;]*m)+|(?:\x1b\[[0-9;]*m)+$/g;
 
 function stripAnsi(buf) {
-  const str = buf.toString("utf8");
-  const stripped = str.replace(/\x1b\[[0-9;]*m/g, "");
-  return Buffer.from(stripped, "utf8");
+  return Buffer.from(buf.toString("utf8").replace(STRAY_ANSI, ""), "utf8");
 }
 
 const server = http.createServer((req, res) => {
