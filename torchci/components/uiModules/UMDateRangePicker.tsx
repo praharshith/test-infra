@@ -18,6 +18,7 @@ const presets = [
 
 interface PresetDateRangeSelectorProps {
   setTimeRange?: (startDate: Dayjs, endDate: Dayjs) => void;
+  label?: string;
   start?: dayjs.Dayjs;
   end?: dayjs.Dayjs;
   gap?: number;
@@ -96,6 +97,7 @@ export function UMDateRangePicker({
 export function UMDateButtonPicker({
   start = dayjs().utc().startOf("day").subtract(6, "day"),
   end = dayjs().utc().endOf("day"),
+  label = "Time Range:",
   setTimeRange = () => {},
 }: PresetDateRangeSelectorProps) {
   const [open, setOpen] = React.useState(false);
@@ -110,7 +112,7 @@ export function UMDateButtonPicker({
           alignItems: "center",
         }}
       >
-        <Box sx={{ margin: "0 2px 0 0", fontSize: "0.8rem" }}>Time Range:</Box>
+        <Box sx={{ margin: "0 2px 0 0", fontSize: "0.8rem" }}>{label}</Box>
         <UMDenseButtonLight
           ref={anchorRef}
           variant="outlined"

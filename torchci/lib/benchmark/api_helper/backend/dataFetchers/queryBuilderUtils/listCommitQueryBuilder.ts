@@ -1,3 +1,4 @@
+import { SPYRE_DATE_RANGE_ARCHES_SQL } from "lib/benchmark/spyreDateRange";
 import { BenchmarkListCommitFetcher } from "../type";
 import { ExecutableQueryBase, QueryBuilder } from "./queryBuilder";
 
@@ -24,8 +25,13 @@ export class BenchmarkListCommitQueryBuilder
         select_exists: true,
         where_exists: true,
         prewhere: [
-          "timestamp >= toUnixTimestamp(parseDateTime64BestEffort({startTime: String}, 3)) * 1000",
-          "timestamp < toUnixTimestamp(parseDateTime64BestEffort({stopTime: String}, 3)) * 1000",
+          `multiIf(
+            arch IN (${SPYRE_DATE_RANGE_ARCHES_SQL}),
+            inserted_at >= parseDateTime64BestEffort({startTime: String}, 3)
+              AND inserted_at < parseDateTime64BestEffort({stopTime: String}, 3),
+            timestamp >= toUnixTimestamp(parseDateTime64BestEffort({startTime: String}, 3)) * 1000
+              AND timestamp < toUnixTimestamp(parseDateTime64BestEffort({stopTime: String}, 3)) * 1000
+          )`,
         ],
       },
       `
@@ -33,7 +39,11 @@ export class BenchmarkListCommitQueryBuilder
     replaceAll(head_branch, 'refs/heads/', '') AS branch,
     head_sha AS commit,
     workflow_id,
-    toStartOfHour(min(fromUnixTimestamp(intDiv(timestamp, 1000)))) AS date
+    toStartOfHour(min(multiIf(
+      arch IN (${SPYRE_DATE_RANGE_ARCHES_SQL}),
+      toDateTime(inserted_at),
+      fromUnixTimestamp(intDiv(timestamp, 1000))
+    ))) AS date
   {{SELECT}}
   FROM {{TABLE}}
   {{PREWHERE}}
@@ -107,11 +117,12 @@ ORDER BY
       inputs.branches = [inputs.branch];
     }
 
-    if (inputs.arch && !inputs.arches) {
+    // callers seed arches/devices with [], which is truthy
+    if (inputs.arch && !inputs.arches?.length) {
       inputs.arches = [inputs.arch];
     }
 
-    if (inputs.device && !inputs.devices) {
+    if (inputs.device && !inputs.devices?.length) {
       inputs.devices = [inputs.device];
     }
 

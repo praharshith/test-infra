@@ -37,6 +37,7 @@ export const echartRenderingOptions: echarts.EChartsOption = {
     type: "time",
     axisLabel: {
       formatter: (v: number) => dayjs.utc(v).format("MM-DD HH:mm"),
+      hideOverlap: true,
     },
   },
   yAxis: {

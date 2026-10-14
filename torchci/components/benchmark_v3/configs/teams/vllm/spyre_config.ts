@@ -1,3 +1,7 @@
+import {
+  SPYRE_DATE_RANGE_ARCHES,
+  SPYRE_E2E_BENCHMARK_ID,
+} from "lib/benchmark/spyreDateRange";
 import { BenchmarkUIConfig } from "../../config_book_types";
 import { BenchmarkComparisonPolicyConfig } from "../../helpers/RegressionPolicy";
 import {
@@ -5,7 +9,9 @@ import {
   DEFAULT_DASHBOARD_BENCHMARK_INITIAL,
 } from "../defaults/default_dashboard_config";
 
-export const SPYRE_E2E_BENCHMARK_ID = "spyre_e2e_benchmark";
+export { SPYRE_E2E_BENCHMARK_ID };
+
+const DATE_RANGE_ONLY_ARCH = { filter: "arch", in: SPYRE_DATE_RANGE_ARCHES };
 
 const TIME_METRIC_POLICY: BenchmarkComparisonPolicyConfig = {
   target: "time_metric",
@@ -82,6 +88,12 @@ export const SpyreE2eBenchmarkDashboardConfig: BenchmarkUIConfig = {
   },
   dataRender: {
     type: "auto",
+    // device/arch come from the embedding dashboard via the URL
+    filterConstraint: {
+      deviceName: {
+        hidden: true,
+      },
+    },
     subSectionRenders: {
       detail_view: {
         filterConstraint: {
@@ -89,6 +101,7 @@ export const SpyreE2eBenchmarkDashboardConfig: BenchmarkUIConfig = {
             disabled: true,
           },
           deviceName: {
+            hidden: true,
             disableOptions: [""],
           },
         },
@@ -157,8 +170,35 @@ export const SpyreE2eBenchmarkDashboardConfig: BenchmarkUIConfig = {
         },
       },
       {
+        type: "AutoBenchmarkTimeSeriesChartGroup",
+        title: "Metrics by inserted date",
+        showWhen: DATE_RANGE_ONLY_ARCH,
+        config: {
+          type: "line",
+          groupByFields: ["metric"],
+          lineKey: ["model", "metric"],
+          chart: {
+            renderOptions: {
+              showLegendDetails: true,
+            },
+          },
+        },
+      },
+      {
+        type: "AutoBenchmarkRawDataTable",
+        title: "Runs by inserted date",
+        showWhen: DATE_RANGE_ONLY_ARCH,
+        config: {
+          extraMetadata: [
+            { field: "granularity_bucket", displayName: "Inserted at" },
+            ...METADATA_COLUMNS,
+          ],
+        },
+      },
+      {
         type: "AutoBenchmarkPairwiseTable",
         title: "Comparison Table",
+        hideWhen: DATE_RANGE_ONLY_ARCH,
         config: {
           primary: {
             fields: ["model"],

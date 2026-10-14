@@ -1,6 +1,8 @@
 import { Divider, Paper, Typography } from "@mui/material";
-import { Stack } from "@mui/system";
+import { Box, Stack } from "@mui/system";
 import { BenchmarkUIConfigHandler } from "components/benchmark_v3/configs/benchmark_config_book";
+import { isSpyreDateRangeView } from "lib/benchmark/spyreDateRange";
+import { useDashboardSelector } from "lib/benchmark/store/benchmark_dashboard_provider";
 import { BenchmarkReportFeatureNotification } from "../benchmarkRegressionReport/BenchmarkReportFeatureNotification";
 import { BenchmarkReportFeatureSidePanel } from "../benchmarkRegressionReport/BenchmarkReportFeatureSidePanel";
 import { CommitWorflowSelectSection } from "./components/commits/CommitWorkfowSelectSection";
@@ -17,6 +19,9 @@ export function BenchmarkTopBar({
 }) {
   const reportFeature =
     config.raw.dataRender?.sideRender?.RegressionReportFeature;
+  const benchmarkId = useDashboardSelector((s) => s.benchmarkId);
+  const arch = useDashboardSelector((s) => s.committedFilters?.arch);
+  const hideCommitRange = isSpyreDateRangeView(benchmarkId, arch);
   return (
     <Paper
       elevation={1} // adds subtle shadow (you can increase for stronger effect)
@@ -48,8 +53,11 @@ export function BenchmarkTopBar({
         {reportFeature && (
           <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
         )}
-        {mode == "default" && <CommitWorflowSelectSection />}
-        {mode == "single" && <SingleCommitSelectSelection />}
+        {/* hidden, not unmounted: its mount effect resolves lcommit/rcommit */}
+        <Box sx={hideCommitRange ? { display: "none" } : undefined}>
+          {mode == "default" && <CommitWorflowSelectSection />}
+          {mode == "single" && <SingleCommitSelectSelection />}
+        </Box>
       </Stack>
     </Paper>
   );

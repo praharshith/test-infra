@@ -53,6 +53,25 @@ export const authOptions = {
     secret: process.env.JWT_SECRET,
   },
 
+  // Opt-in: lets the session cookie survive when the HUD is embedded in an
+  // iframe on another origin (e.g. spyre-dashboard). Weakens SameSite
+  // protection, so it is off unless HUD_ALLOW_IFRAME_EMBED=true.
+  ...(process.env.HUD_ALLOW_IFRAME_EMBED === "true" && {
+    cookies: {
+      sessionToken: {
+        name: `${
+          process.env.NEXTAUTH_URL?.startsWith("https://") ? "__Secure-" : ""
+        }next-auth.session-token`,
+        options: {
+          httpOnly: true,
+          sameSite: "none" as const,
+          path: "/",
+          secure: true,
+        },
+      },
+    },
+  }),
+
   theme: {
     colorScheme: "light",
     logo: "/favicon.ico",

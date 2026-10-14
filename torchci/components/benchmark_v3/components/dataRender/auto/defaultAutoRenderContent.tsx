@@ -2,6 +2,7 @@ import { Alert, Divider, Typography } from "@mui/material";
 import { Box, Stack } from "@mui/system";
 import { HighlightStyles } from "components/benchmark_v3/components/common/highlight";
 import { getAutoRenderComponent } from "components/benchmark_v3/configs/utils/autoRegistration";
+import { filterRendersByCondition } from "components/benchmark_v3/configs/utils/renderConditions";
 import LoadingPage from "components/common/LoadingPage";
 import { useBenchmarkCommittedContext } from "lib/benchmark/api_helper/fe/hooks";
 import { useDashboardSelector } from "lib/benchmark/store/benchmark_dashboard_provider";
@@ -24,6 +25,8 @@ export function DefaultAutoRenderContent() {
     autoUIConfigs =
       ctx.dataRender.subSectionRenders[renderGroupId]?.renders ?? [];
   }
+
+  autoUIConfigs = filterRendersByCondition(autoUIConfigs, ctx.committedFilters);
 
   if (autoUIConfigs?.length === 0) {
     return (

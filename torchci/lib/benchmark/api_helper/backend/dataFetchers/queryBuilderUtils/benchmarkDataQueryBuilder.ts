@@ -1,4 +1,8 @@
 import { deepClone } from "@mui/x-data-grid/internals";
+import {
+  SPYRE_DATE_RANGE_ARCHES,
+  SPYRE_DATE_RANGE_ARCHES_SQL,
+} from "lib/benchmark/spyreDateRange";
 import { toBenchmarkTimeSeriesReponseFormat } from "../../common/utils";
 import { BenchmarkDataFetcher } from "../type";
 import { ExecutableQueryBase, QueryBuilder, SelectItem } from "./queryBuilder";
@@ -775,6 +779,13 @@ export class SpyreBenchmarkDataFetcher
         ...Array.from(this._extra_keys).map((key) => `extra_key.${key}`),
       ];
     }
+    // these archs share one workflow_id, so key each point by date instead
+    const dateKeyed =
+      data.length > 0 &&
+      data.every((r: any) => SPYRE_DATE_RANGE_ARCHES.includes(r.arch));
+    if (dateKeyed) {
+      config.time_series.sub_group_key = ["granularity_bucket"];
+    }
     return toBenchmarkTimeSeriesReponseFormat(data, config, formats);
   }
 
@@ -823,9 +834,10 @@ export class SpyreBenchmarkDataFetcher
             '' AS dtype,
             JSONExtractString(o.extra, 'device') AS device,
             JSONExtractString(o.extra, 'arch') AS arch,
-            DATE_TRUNC(
-                {granularity: String},
-                fromUnixTimestamp(intDiv(o.timestamp, 1000))
+            multiIf(
+                JSONExtractString(o.extra, 'arch') IN (${SPYRE_DATE_RANGE_ARCHES_SQL}),
+                DATE_TRUNC({granularity: String}, o.inserted_at),
+                DATE_TRUNC({granularity: String}, fromUnixTimestamp(intDiv(o.timestamp, 1000)))
             ) AS granularity_bucket,
             map(
                 'use_compile', 'true',
@@ -839,8 +851,13 @@ export class SpyreBenchmarkDataFetcher
             ) AS metadata_info
         FROM spyre.results_v3 o
         PREWHERE
-            o.timestamp >= toUnixTimestamp(parseDateTime64BestEffort({startTime: String}, 3)) * 1000
-            AND o.timestamp < toUnixTimestamp(parseDateTime64BestEffort({stopTime: String}, 3)) * 1000
+            multiIf(
+                JSONExtractString(o.extra, 'arch') IN (${SPYRE_DATE_RANGE_ARCHES_SQL}),
+                o.inserted_at >= parseDateTime64BestEffort({startTime: String}, 3)
+                    AND o.inserted_at < parseDateTime64BestEffort({stopTime: String}, 3),
+                o.timestamp >= toUnixTimestamp(parseDateTime64BestEffort({startTime: String}, 3)) * 1000
+                    AND o.timestamp < toUnixTimestamp(parseDateTime64BestEffort({stopTime: String}, 3)) * 1000
+            )
         WHERE
             o.repo = {repo: String}
             AND (
